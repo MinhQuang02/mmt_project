@@ -284,7 +284,6 @@ def start_server():
             remove_id_from_starred(file_path_starred_files, id_to_remove)
             remove_row_by_id(file_path_all_files, id_to_remove)
             add_info_to_user(file_path_recycle_bin, name_user, id_to_remove, user_info)
-            move_file(f"{PATH}mmt_project-main/server/data_files/all_file/{id_to_remove}", PATH + "mmt_project-main/server/data_files/recycle_bin")
         elif signal[-3:] == "|rs": # Restore file
             user_and_id = signal[:-3]
             user_info = user_and_id.split("|")[1]
@@ -293,7 +292,6 @@ def start_server():
             name_user = name_user[:-1]
             del_one_id_in_one_row(file_path_recycle_bin, name_user, id_to_restore)
             add_new_row(file_path_all_files, id_to_restore, user_info)
-            move_file(f"{PATH}mmt_project-main/server/data_files/recycle_bin/{id_to_restore}", PATH + "mmt_project-main/server/data_files/all_file")
         elif signal[-3:] == "|df": # Delete file
             user_and_id = signal[:-3]
             user_info = user_and_id.split("|")[1]
@@ -324,7 +322,7 @@ def start_server():
             change_password(file_path_users_login, user, password)
         elif signal[-3:] == "|dl": # Download
             signal = signal[:-3]
-            upload_to_client(address[0], PATH + "mmt_project-main/server/data_files/all_file/" + signal)
+            upload_to_client(address[0], PATH + "mmt_project-main/server/uploads/" + signal)
         else: # Upload
             client_handler = threading.Thread(target=handle_client, args=(client_socket, signal))
             client_handler.start()
