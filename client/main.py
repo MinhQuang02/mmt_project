@@ -409,6 +409,10 @@ class App(customtkinter.CTk):
             messagebox.showerror("Registration Failed", "Username already exists.")
         elif password != confirm_password:
             messagebox.showerror("Registration Failed", "Passwords do not match.")
+        elif len(username) == 0:
+            messagebox.showerror("Registration Failed", "Username cannot be empty.")
+        elif len(password) < 6:
+            messagebox.showerror("Registration Failed", "Password must be at least 6 characters.")
         else:
             self.users_login[username] = password
             messagebox.showinfo("Registration Successful", "Account created successfully.")
