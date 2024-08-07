@@ -12,12 +12,12 @@ import sys
 import time
 import os
 
-SERVER_HOST = "192.168.1.26"
+SERVER_HOST = "10.124.7.177"
 SERVER_PORT = 5001
 BUFFER_SIZE = 4096
 SEPARATOR = "<SEPARATOR>"
 PATH = "PATH"
-DOWNLOAD_FOLDER = "uploads"
+DOWNLOAD_FOLDER = "downloads"
 
 customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
 customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
@@ -46,7 +46,7 @@ def take_signal(signal):
     client_socket.sendall(signal.encode())
 
     # receive data from the server
-    data = client_socket.recv(1024).decode()
+    data = client_socket.recv(4096).decode()
     
     # close the connection
     client_socket.close()
@@ -54,9 +54,8 @@ def take_signal(signal):
     return data
 
 # handle signal to server function
-def handle_client(client_socket):
+def handle_client(client_socket, received):
     try:
-        received = client_socket.recv(BUFFER_SIZE).decode()
         filename, filesize = received.split(SEPARATOR)
         filename = os.path.basename(filename)
         filesize = int(filesize)
@@ -523,7 +522,7 @@ class App(customtkinter.CTk):
         except ConnectionRefusedError:
             self.log_activity(f"Connection to server refused. Make sure the server is running.")
             return
-                
+                        
         try:
             client_socket.send(f"{file_path}{SEPARATOR}{filesize}".encode())
         except ConnectionResetError:
@@ -756,11 +755,13 @@ class App(customtkinter.CTk):
             # download file from server
             for item in checked_items:
                 # send signal to server
-                take_signal(item.split(" - ")[2])
+                take_signal(item.split(" - ")[2] + "|dl")
                 client_socket, address = server_socket.accept()
+                
+                signal = client_socket.recv(BUFFER_SIZE).decode()
                     
                 # receive file
-                client_handler = threading.Thread(target=handle_client, args=(client_socket,))
+                client_handler = threading.Thread(target=handle_client, args=(client_socket, signal))
                 client_handler.start()         
                    
                 # close client socket
