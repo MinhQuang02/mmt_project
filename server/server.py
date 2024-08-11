@@ -4,12 +4,13 @@ import threading
 import csv
 import shutil
 import datetime
+import random
 
 SERVER_HOST = "0.0.0.0"
 SERVER_PORT = 5001
 BUFFER_SIZE = 4096
 SEPARATOR = "<SEPARATOR>"
-UPLOAD_FOLDER = "uploads"
+UPLOAD_FOLDER = "mmt_project-main/server/uploads"
 PATH = "PATH"
 
 # All file path
@@ -37,7 +38,6 @@ def extract_user_info(file_path, user_name):
     result = ""
     with open(file_path, mode='r', newline='', encoding='utf-8') as file:
         csv_reader = csv.reader(file)
-        headers = next(csv_reader)
 
         for row in csv_reader:
             if row[0] == user_name:
@@ -187,15 +187,26 @@ def change_password(file_path, user_name, new_password):
         csv_writer = csv.writer(file)
         csv_writer.writerows(rows)
         
-# Move file from source to destination
-def move_file(source_file, destination_folder):
-    os.makedirs(destination_folder, exist_ok=True)
-    shutil.move(source_file, destination_folder)
-    print(f"File '{source_file}' đã được chuyển đến '{destination_folder}'")
+# Check if id is existed in csv file
+def check_id_existed(file_path, id_to_check):
+    with open(file_path, mode='r', newline='', encoding='utf-8') as file:
+        csv_reader = csv.reader(file)
+        for row in csv_reader:
+            if row[0] == id_to_check:
+                return True
+    return False
+
+# File extension
+def file_extension(file_info):
+    parts = file_info.split(' - ')
+    filename = parts[2]
+    extension = filename.split('.')[-1]
+    return extension
 
 # Handle client function
-def handle_client(client_socket, received):
+def handle_client(client_socket, received, new_id):
     try:
+        received, user_name = received.split("|")
         filename, filesize = received.split(SEPARATOR)
         filename = os.path.basename(filename)
         filesize = int(filesize)
@@ -208,6 +219,13 @@ def handle_client(client_socket, received):
                     break
                 f.write(bytes_read)
         print(f"File {filename} received successfully")
+        filename = user_name + " - " + filename + " - " + datetime.datetime.now().strftime("%d/%m/%Y")
+        add_new_row(file_path_all_files, str(new_id), filename)
+        new_filename = str(new_id)
+        name, extension = os.path.splitext(filepath)
+        new_filename += extension
+        new_filepath = os.path.join(UPLOAD_FOLDER, new_filename)
+        os.rename(filepath, new_filepath)
     finally:
         client_socket.close()
 
@@ -250,7 +268,7 @@ def start_server():
         client_socket, address = server_socket.accept()
         print(f"[+] {address} is connected.")
 
-        signal = client_socket.recv(4096).decode()
+        signal = client_socket.recv(BUFFER_SIZE).decode()
         print(f"Received signal: {signal}")
         
         data = "None"
@@ -258,7 +276,7 @@ def start_server():
             data = csv_to_string(file_path_users_login)
         elif signal == "asf": # Get all server files
             data = csv_to_string(file_path_all_files)
-        elif signal[-3:] == "|sf": # Get all starred files by user
+        elif signal[-3:] == "|ds": # Get all starred files by user
             name_user = signal[:-3]
             data = extract_user_info(file_path_starred_files, name_user)
             if data == "":
@@ -299,7 +317,8 @@ def start_server():
             name_user = user_info.split("-")[0]
             name_user = name_user[:-1]
             del_one_id_in_one_row(file_path_recycle_bin, name_user, id_to_delete)
-            os.remove(f"{PATH}mmt_project-main/server/data_files/all_file/{id_to_delete}")
+            id_to_delete = id_to_delete + "." + file_extension(id_to_delete + " - " + user_info)
+            os.remove(PATH + "mmt_project-main/server/uploads/" + id_to_delete)
         elif signal[-3:] == "|sf": # Starred file
             user_and_info = signal[:-3]
             info = user_and_info.split("|")[1]
@@ -317,15 +336,29 @@ def start_server():
             del_one_id_in_one_row(file_path_starred_files, user, id_user)
         elif signal[-3:] == "|cp": # Change password
             user_and_pass = signal[:-3]
-            user = user_and_info.split("|")[0]
-            password = user_and_info.split("|")[1]
+            user = user_and_pass.split("|")[0]
+            password = user_and_pass.split("|")[1]
             change_password(file_path_users_login, user, password)
         elif signal[-3:] == "|dl": # Download
             signal = signal[:-3]
-            upload_to_client(address[0], PATH + "mmt_project-main/server/uploads/" + signal)
+            filepath = os.path.join(UPLOAD_FOLDER, signal)
+            with open(filepath, 'rb') as file:
+                while True:
+                    bytes_read = file.read(BUFFER_SIZE)
+                    if not bytes_read:
+                        break
+                    try:
+                        client_socket.sendall(bytes_read)
+                    except ConnectionResetError:
+                        return
+            continue
         else: # Upload
-            client_handler = threading.Thread(target=handle_client, args=(client_socket, signal))
+            new_id = random.randint(1000, 9999)
+            while check_id_existed(file_path_all_files, str(new_id)):
+                new_id = random.randint(1000, 9999)
+            client_handler = threading.Thread(target=handle_client, args=(client_socket, signal, new_id))
             client_handler.start()
+            data = str(new_id)
             
         client_socket.sendall(data.encode())
 
