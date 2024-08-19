@@ -9,14 +9,14 @@ SERVER_HOST = "0.0.0.0"
 SERVER_PORT = 5001
 BUFFER_SIZE = 4096
 SEPARATOR = "<SEPARATOR>"
-UPLOAD_FOLDER = "mmt_project/server/uploads"
+UPLOAD_FOLDER = "mmt_project-main/server/uploads"
 PATH = "PATH"
 
 # All file path
-file_path_all_files = PATH + 'mmt_project/server/data_users/all_file.csv'
-file_path_recycle_bin = PATH + 'mmt_project/server/data_users/recycle_bin.csv'
-file_path_starred_files = PATH + 'mmt_project/server/data_users/starred_file.csv'
-file_path_users_login = PATH + 'mmt_project/server/data_users/users_login.csv'
+file_path_all_files = PATH + 'mmt_project-main/server/data_users/all_file.csv'
+file_path_recycle_bin = PATH + 'mmt_project-main/server/data_users/recycle_bin.csv'
+file_path_starred_files = PATH + 'mmt_project-main/server/data_users/starred_file.csv'
+file_path_users_login = PATH + 'mmt_project-main/server/data_users/users_login.csv'
 
 # Create folder to store uploaded files if not existed
 if not os.path.exists(UPLOAD_FOLDER):
@@ -313,7 +313,7 @@ def start_server():
             
             # Delete file from server by id
             id_to_delete = id_to_delete + "." + file_extension(id_to_delete + " - " + user_info)
-            os.remove(PATH + "mmt_project/server/uploads/" + id_to_delete)
+            os.remove(PATH + "mmt_project-main/server/uploads/" + id_to_delete)
         elif signal[-3:] == "|sf": # Starred file
             # Get user and id to starred
             user_and_info = signal[:-3]
